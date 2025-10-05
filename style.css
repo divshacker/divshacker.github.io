@@ -1,0 +1,255 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #fff;
+}
+
+/* Container */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 60px;
+    padding: 40px 0;
+    border-bottom: 1px solid #eee;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #1a1a1a;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 30px;
+    font-weight: 400;
+}
+
+/* Navigation */
+nav {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+nav a {
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+nav a:hover {
+    background-color: #f5f5f5;
+    color: #007acc;
+}
+
+/* Sections */
+section {
+    margin-bottom: 60px;
+}
+
+section h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 30px;
+    color: #1a1a1a;
+    border-bottom: 2px solid #007acc;
+    padding-bottom: 10px;
+}
+
+section h3 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+section h4 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #007acc;
+}
+
+section p {
+    margin-bottom: 20px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+/* About section */
+.about-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+.interests ul {
+    list-style: none;
+    padding: 0;
+}
+
+.interests li {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+}
+
+.interests li:last-child {
+    border-bottom: none;
+}
+
+/* Research and project items */
+.research-item,
+.project-item,
+.work-item {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #fafafa;
+    border-radius: 8px;
+    border-left: 4px solid #007acc;
+}
+
+.research-item h4,
+.project-item h4,
+.work-item h4 {
+    margin-bottom: 15px;
+}
+
+.research-item p,
+.project-item p,
+.work-item p {
+    margin-bottom: 0;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+/* Contact section */
+.contact-info {
+    margin-bottom: 30px;
+}
+
+.contact-info p {
+    margin-bottom: 10px;
+}
+
+.academic-info {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.academic-info h3 {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.academic-info p {
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+/* Links */
+a {
+    color: #007acc;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Coming soon message */
+.coming-soon {
+    font-style: italic;
+    color: #666;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid #eee;
+    margin-top: 60px;
+}
+
+footer p {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .about-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    
+    nav {
+        gap: 20px;
+    }
+    
+    nav a {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+    
+    section h2 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+    }
+    
+    nav {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .research-item,
+    .project-item,
+    .work-item {
+        padding: 15px;
+    }
+}
