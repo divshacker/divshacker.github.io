@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSIR NET Physics Tracker</title>
+<style>
+:root {
+  --bg:      #070b14;
+  --surface: #0c1120;
+  --card:    #101628;
+  --border:  #1a2240;
+  --border2: #263060;
+  --text:    #8ba0c0;
+  --text2:   #c0d0e8;
+  --bright:  #e8f4ff;
+  --dim:     #3d4f6a;
+  --accent:  #2ee8a0;
+  --amber:   #f5be32;
+  --blue:    #58a0ff;
+  --red:     #ff4f6a;
+  --purple:  #a78bfa;
+  --r:       7px;
+  --mono:    'Courier New','Lucida Console','DejaVu Sans Mono',monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 15% 0%,  #0d1f3a 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 100%, #0a1828 0%, transparent 55%);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(26,34,64,0.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,34,64,0.45) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events:none; z-index:0;
+}
+main, header, footer { position: relative; z-index: 1; }
+
+/* ─── HEADER ─── */
+header {
+  text-align: center;
+  padding: 36px 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.header-tag {
+  display: inline-block;
+  font-size: 10px; letter-spacing: 0.3em;
+  color: var(--accent);
+  background: rgba(46,232,160,0.07);
+  border: 1px solid rgba(46,232,160,0.25);
+  padding: 3px 14px; border-radius: 2px;
+  margin-bottom: 12px; text-transform: uppercase;
+}
+h1 {
+  font-size: clamp(18px, 3.2vw, 34px);
+  color: var(--bright); font-weight: normal;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 40px rgba(46,232,160,0.15);
+}
+h1 .hi { color: var(--accent); }
+.header-sub { font-size: 10px; color: var(--dim); letter-spacing: 0.2em; margin-top: 6px; margin-bottom: 22px; }
+
+/* ─── TOP BAR: TABS + EXPORT ─── */
+.top-bar {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+/* Tabs */
+.tabs { display: flex; gap: 0; }
+.tab-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--dim); cursor: pointer;
+  font-family: var(--mono); font-size: 11px;
+  padding: 8px 22px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color .2s, background .2s, border-color .2s;
+  position: relative; top: 1px;
+}
+.tab-btn:first-child { border-radius: 5px 0 0 0; }
+.tab-btn:last-child  { border-radius: 0 5px 0 0; }
+.tab-btn.active {
+  background: var(--card);
+  border-color: var(--border2);
+  color: var(--bright);
+}
+.tab-btn:not(.active):hover { color: var(--text2); border-color: var(--border2); }
+
+/* Data buttons */
+.data-btns { display: flex; gap: 8px; align-items: center; padding-bottom: 2px; }
+.data-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text); cursor: pointer;
+  font-family: var(--mono); font-size: 10px;
+  padding: 6px 14px; border-radius: 4px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  transition: all .2s;
+}
+.data-btn .icon { font-size: 13px; }
+.data-btn.export:hover { border-color: var(--accent); color: var(--accent); background: rgba(46,232,160,0.05); }
+.data-btn.import:hover { border-color: var(--blue);   color: var(--blue);   background: rgba(88,160,255,0.05); }
+.data-btn.reset:hover  { border-color: var(--red);    color: var(--red);    background: rgba(255,79,106,0.05); }
+#file-inp { display: none; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--card); border: 1px solid var(--accent);
+  color: var(--accent); font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.1em;
+  padding: 10px 20px; border-radius: 5px;
+  z-index: 999; opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .3s, transform .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ─── LAYOUT ─── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+main { max-width: 1160px; margin: 0 auto; padding: 0 18px 80px; }
+.panel-inner { padding-top: 26px; }
+
+/* ─── DASHBOARD ─── */
+.dashboard {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px; margin-bottom: 20px;
+}
+@media(max-width:680px){ .dashboard{grid-template-columns:1fr;} }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px;
+}
+.overall-card {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+.card-label { font-size:10px; letter-spacing:0.2em; color:var(--dim); text-transform:uppercase; }
+.donut-ring { transition: stroke-dasharray 0.7s cubic-bezier(0.4,0,0.2,1); }
+.glow-svg   { filter: drop-shadow(0 0 8px rgba(46,232,160,0.3)); }
+
+/* Pills */
+.pills-card { display: flex; flex-direction: column; gap: 10px; }
+.pills-card .card-label { margin-bottom: 2px; }
+.pills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(162px, 1fr));
+  gap: 7px;
+}
+.part-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 5px; border-bottom: 1px solid var(--border);
+}
+.part-row-label { font-size:10px; letter-spacing:0.15em; color:var(--dim); text-transform:uppercase; }
+.part-row-pct   { font-size:14px; color:var(--amber); }
+
+.section-pill {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 5px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, transform .15s;
+}
+.section-pill:hover { border-color: var(--border2); background: #111828; transform: translateY(-1px); }
+.pill-top  { display: flex; justify-content: space-between; align-items: center; }
+.pill-icon { color: var(--accent); font-size: 14px; line-height: 1; }
+.pill-pct  { font-size: 11px; }
+.pill-name { font-size: 10px; color: var(--text2); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill-bar  { height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+.pill-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue));
+  border-radius: 1px; transition: width .6s ease; }
+
+/* ─── STATS ROW ─── */
+.stats-row { display: flex; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
+.stat-chip {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px 18px;
+  flex: 1; min-width: 110px;
+}
+.stat-num   { font-size: 24px; color: var(--bright); line-height: 1.2; }
+.stat-label { font-size: 10px; color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 2px; }
+
+/* ─── SECTION DIVIDER ─── */
+.section-label {
+  font-size: 10px; letter-spacing: 0.2em; color: var(--dim);
+  text-transform: uppercase; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ─── PART BLOCKS (syllabus) ─── */
+.part-block { margin-bottom: 22px; }
+.part-title {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px;
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: var(--r); margin-bottom: 8px;
+  cursor: pointer; user-select: none; transition: background .2s;
+}
+.part-title:hover { background: #111830; }
+.part-slash       { color: var(--accent); font-size: 11px; letter-spacing: 0.1em; }
+.part-title-text  { flex: 1; font-size: 13px; color: var(--bright); letter-spacing: 0.08em; }
+.part-title-badge {
+  font-size: 11px; color: var(--amber);
+  background: rgba(245,190,50,0.08);
+  border: 1px solid rgba(245,190,50,0.22);
+  border-radius: 3px; padding: 2px 9px;
+}
+.chevron { color: var(--dim); font-size: 10px; transition: transform .25s; }
+.part-title.open .chevron { transform: rotate(90deg); }
+.part-body        { display: none; }
+.part-body.open   { display: block; }
+
+/* ─── TOPIC / SUBJECT BLOCK ─── */
+.topic-block {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); margin-bottom: 6px;
+  overflow: hidden; transition: border-color .2s;
+}
+.topic-block:hover { border-color: var(--border2); }
+.topic-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; cursor: pointer; user-select: none;
+  transition: background .15s;
+}
+.topic-header:hover { background: rgba(255,255,255,0.02); }
+.topic-icon          { color: var(--accent); font-size: 15px; width: 22px; text-align: center; flex-shrink: 0; }
+.topic-name          { flex: 1; font-size: 13px; color: var(--text2); letter-spacing: 0.03em; }
+.topic-bar-wrap      { width: 80px; height: 3px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
+.topic-bar-fill      { height: 100%; background: var(--accent); border-radius: 2px; transition: width .5s ease; }
+.topic-pct-label     { font-size: 10px; width: 32px; text-align: right; flex-shrink: 0; }
+.topic-count-label   { font-size: 9px; color: var(--dim); width: 44px; text-align: right; flex-shrink: 0; }
+.topic-chevron       { color: var(--dim); font-size: 10px; transition: transform .2s; flex-shrink: 0; }
+.topic-header.open .topic-chevron { transform: rotate(90deg); }
+
+/* Subtopic/Lecture list */
+.subtopic-list      { display: none; padding: 4px 0 8px 0; border-top: 1px solid var(--border); }
+.subtopic-list.open { display: block; }
+
+/* Lecture grid */
+.lecture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  padding: 2px 12px 4px 44px;
+}
+
+/* Subtopic row (syllabus uses single column) */
+.subtopic-row { padding: 2px 12px 2px 44px; }
+
+.subtopic-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px; border-radius: 3px;
+  transition: background .15s;
+}
+.subtopic-item:hover { background: rgba(255,255,255,0.02); }
+.subtopic-item input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border: 1px solid var(--border2); border-radius: 2px;
+  background: transparent; cursor: pointer;
+  flex-shrink: 0; transition: all .2s; position: relative;
+}
+.subtopic-item input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+.subtopic-item input[type="checkbox"]:checked::after {
+  content:'✓'; position:absolute; font-size:8px; color:#000; font-weight:bold; top:1px; left:2px;
+}
+.subtopic-text { flex:1; font-size:11px; color:var(--text); transition:color .2s; line-height:1.5; }
+.subtopic-item.done .subtopic-text {
+  color: var(--dim);
+  text-decoration: line-through;
+  text-decoration-color: rgba(61,79,106,0.6);
+}
+.del-btn {
+  background: none; border: none; color: var(--dim); cursor: pointer;
+  font-size: 10px; padding: 2px 4px; border-radius: 2px;
+  opacity: 0; transition: opacity .15s, color .15s; line-height:1; flex-shrink:0;
+}
+.subtopic-item:hover .del-btn { opacity: 1; }
+.del-btn:hover { color: var(--red); }
+
+/* Add row */
+.add-task-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 16px 4px 52px;
+}
+.add-input {
+  flex: 1; background: transparent; border: none;
+  border-bottom: 1px dashed var(--border);
+  color: var(--text2); font-family: var(--mono);
+  font-size: 11px; padding: 3px 2px; outline: none;
+  transition: border-color .2s; max-width: 300px;
+}
+.add-input:focus   { border-bottom-color: var(--accent); }
+.add-input::placeholder { color: var(--dim); }
+.add-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--accent); cursor: pointer;
+  font-family: var(--mono); font-size: 10px;
+  padding: 3px 10px; border-radius: 3px; letter-spacing: 0.1em;
+  transition: background .15s, border-color .15s; flex-shrink: 0;
+}
+.add-btn:hover { background: rgba(46,232,160,0.07); border-color: var(--accent); }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.fading { opacity: 0 !important; transition: opacity .2s !important; }
+
+footer {
+  text-align: center; padding: 20px;
+  font-size: 10px; color: var(--dim); letter-spacing: 0.15em;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">CSIR-UGC NET · JRF &amp; Lectureship</div>
+  <h1>CSIR NET <span class="hi">Physics</span> Preparation Tracker</h1>
+  <div class="header-sub" id="header-date"></div>
+
+  <div class="top-bar">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('syllabus')">// Syllabus</button>
+      <button class="tab-btn"        onclick="switchTab('lectures')">// Lectures</button>
+    </div>
+    <div class="data-btns">
+      <button class="data-btn export" onclick="exportData()">
+        <span class="icon">↓</span> Export .json
+      </button>
+      <button class="data-btn import" onclick="document.getElementById('file-inp').click()">
+        <span class="icon">↑</span> Import .json
+      </button>
+      <input type="file" id="file-inp" accept=".json" onchange="importData(event)">
+      <button class="data-btn reset" onclick="resetAll()">
+        <span class="icon">⊘</span> Reset
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="toast" id="toast"></div>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 1 — SYLLABUS
+═══════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="panel-syllabus">
+<div class="panel-inner">
+
+  <div class="dashboard">
+    <div class="card overall-card">
+      <div class="card-label">Syllabus Progress</div>
+      <svg width="145" height="145" viewBox="0 0 150 150" class="glow-svg">
+        <defs>
+          <linearGradient id="dgS" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="#2ee8a0"/>
+            <stop offset="100%" stop-color="#58a0ff"/>
+          </linearGradient>
+        </defs>
+        <circle cx="75" cy="75" r="58" fill="none" stroke="#1a2240" stroke-width="11"/>
+        <circle cx="75" cy="75" r="58" fill="none" stroke="url(#dgS)" stroke-width="11"
+          stroke-dasharray="0 364.4" stroke-dashoffset="91.1" stroke-linecap="round"
+          id="syl-ring" class="donut-ring"/>
+        <text x="75" y="70" text-anchor="middle" fill="#e8f4ff"
+          font-size="26" font-family="'Courier New',monospace" id="syl-pct-text">0%</text>
+        <text x="75" y="87" text-anchor="middle" fill="#3d4f6a"
+          font-size="10" font-family="'Courier New',monospace">complete</text>
+      </svg>
+      <div class="card-label" id="syl-tasks-label">0 / 0 tasks done</div>
+    </div>
+    <div class="card pills-card" id="syl-pills-card"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-chip">
+      <div class="stat-num" id="syl-done"   style="color:var(--accent)">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-num" id="syl-remain">0</div>
+      <div class="stat-label">Remaining</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-num" id="syl-pct-a"  style="color:var(--amber)">0%</div>
+      <div class="stat-label">Part A — Core</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-num" id="syl-pct-b"  style="color:var(--blue)">0%</div>
+      <div class="stat-label">Part B — Advanced</div>
+    </div>
+  </div>
+
+  <div class="section-label">Syllabus Checklist</div>
+  <div id="syl-root"></div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 2 — LECTURES
+═══════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-lectures">
+<div class="panel-inner">
+
+  <div class="dashboard">
+    <div class="card overall-card">
+      <div class="card-label">Lecture Progress</div>
+      <svg width="145" height="145" viewBox="0 0 150 150" class="glow-svg">
+        <defs>
+          <linearGradient id="dgL" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="#2ee8a0"/>
+            <stop offset="100%" stop-color="#58a0ff"/>
+          </linearGradient>
+        </defs>
+        <circle cx="75" cy="75" r="58" fill="none" stroke="#1a2240" stroke-width="11"/>
+        <circle cx="75" cy="75" r="58" fill="none" stroke="url(#dgL)" stroke-width="11"
+          stroke-dasharray="0 364.4" stroke-dashoffset="91.1" stroke-linecap="round"
+          id="lec-ring" class="donut-ring"/>
+        <text x="75" y="70" text-anchor="middle" fill="#e8f4ff"
+          font-size="26" font-family="'Courier New',monospace" id="lec-pct-text">0%</text>
+        <text x="75" y="87" text-anchor="middle" fill="#3d4f6a"
+          font-size="10" font-family="'Courier New',monospace">complete</text>
+      </svg>
+      <div class="card-label" id="lec-tasks-label">0 / 415 lectures done</div>
+    </div>
+    <div class="card pills-card" id="lec-pills-card"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-chip">
+      <div class="stat-num" id="lec-done"    style="color:var(--accent)">0</div>
+      <div class="stat-label">Lectures Done</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-num" id="lec-remain">0</div>
+      <div class="stat-label">Remaining</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-num" id="lec-total"   style="color:var(--text2)">415</div>
+      <div class="stat-label">Total Lectures</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-num" id="lec-started" style="color:var(--blue)">0/9</div>
+      <div class="stat-label">Subjects Started</div>
+    </div>
+  </div>
+
+  <div class="section-label">Lecture Checklists</div>
+  <div id="lec-root"></div>
+
+</div>
+</div>
+
+</main>
+
+<footer>
+  Progress saved in browser localStorage · Export .json to keep a permanent backup · Works fully offline
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA DEFINITIONS
+// ═══════════════════════════════════════════════════════════
+
+const SYLLABUS = [
+  { id:'partA', label:'Part A — Core', sections:[
+    { id:'a1', icon:'∇', title:'Mathematical Methods of Physics', tasks:[
+      {id:'a1-1',  text:'Dimensional analysis'},
+      {id:'a1-2',  text:'Vector algebra and vector calculus'},
+      {id:'a1-3',  text:'Linear algebra, matrices, Cayley-Hamilton Theorem'},
+      {id:'a1-4',  text:'Eigenvalues and eigenvectors'},
+      {id:'a1-5',  text:'Linear ODEs of first & second order'},
+      {id:'a1-6',  text:'Special functions: Hermite, Bessel, Laguerre, Legendre'},
+      {id:'a1-7',  text:'Fourier series, Fourier and Laplace transforms'},
+      {id:'a1-8',  text:'Complex analysis, analytic functions'},
+      {id:'a1-9',  text:'Taylor & Laurent series; poles, residues, integrals'},
+      {id:'a1-10', text:'Elementary probability theory, random variables'},
+      {id:'a1-11', text:'Binomial, Poisson and normal distributions'},
+      {id:'a1-12', text:'Central limit theorem'},
+    ]},
+    { id:'a2', icon:'ℒ', title:'Classical Mechanics', tasks:[
+      {id:'a2-1',  text:"Newton's laws"},
+      {id:'a2-2',  text:'Dynamical systems, phase space dynamics, stability analysis'},
+      {id:'a2-3',  text:'Central force motions'},
+      {id:'a2-4',  text:'Two-body collisions, scattering in Lab and CoM frames'},
+      {id:'a2-5',  text:'Rigid body dynamics, moment of inertia tensor'},
+      {id:'a2-6',  text:'Non-inertial frames and pseudoforces'},
+      {id:'a2-7',  text:'Variational principle'},
+      {id:'a2-8',  text:'Generalized coordinates'},
+      {id:'a2-9',  text:'Lagrangian and Hamiltonian formalism'},
+      {id:'a2-10', text:'Conservation laws and cyclic coordinates'},
+      {id:'a2-11', text:'Periodic motion: small oscillations, normal modes'},
+      {id:'a2-12', text:'Special relativity: Lorentz transformations, relativistic kinematics'},
+    ]},
+    { id:'a3', icon:'⚡', title:'Electromagnetic Theory', tasks:[
+      {id:'a3-1',  text:"Electrostatics: Gauss's law and applications"},
+      {id:'a3-2',  text:'Laplace and Poisson equations, boundary value problems'},
+      {id:'a3-3',  text:"Magnetostatics: Biot-Savart law, Ampere's theorem"},
+      {id:'a3-4',  text:'Electromagnetic induction'},
+      {id:'a3-5',  text:"Maxwell's equations in free space and linear isotropic media"},
+      {id:'a3-6',  text:'Boundary conditions at interfaces'},
+      {id:'a3-7',  text:'Scalar and vector potentials, gauge invariance'},
+      {id:'a3-8',  text:'EM waves in free space'},
+      {id:'a3-9',  text:'Dielectrics and conductors'},
+      {id:'a3-10', text:'Reflection and refraction, polarization'},
+      {id:'a3-11', text:"Fresnel's law, interference, coherence, diffraction"},
+      {id:'a3-12', text:'Dynamics of charged particles in EM fields'},
+    ]},
+    { id:'a4', icon:'ψ', title:'Quantum Mechanics', tasks:[
+      {id:'a4-1',  text:'Wave-particle duality'},
+      {id:'a4-2',  text:'Schrödinger equation (time-dependent and time-independent)'},
+      {id:'a4-3',  text:'Eigenvalue problems: particle in a box, harmonic oscillator'},
+      {id:'a4-4',  text:'Tunneling through a barrier'},
+      {id:'a4-5',  text:'Wave-function in coordinate and momentum representations'},
+      {id:'a4-6',  text:'Commutators and Heisenberg uncertainty principle'},
+      {id:'a4-7',  text:'Dirac notation for state vectors'},
+      {id:'a4-8',  text:'Central potential: orbital angular momentum algebra'},
+      {id:'a4-9',  text:'Spin, addition of angular momenta'},
+      {id:'a4-10', text:'Hydrogen atom'},
+      {id:'a4-11', text:'Stern-Gerlach experiment'},
+      {id:'a4-12', text:'Time-independent perturbation theory and applications'},
+      {id:'a4-13', text:'Variational method'},
+      {id:'a4-14', text:"Time-dependent perturbation theory, Fermi's golden rule"},
+      {id:'a4-15', text:'Identical particles, Pauli exclusion, spin-statistics connection'},
+    ]},
+    { id:'a5', icon:'Σ', title:'Thermodynamics & Statistical Physics', tasks:[
+      {id:'a5-1',  text:'Laws of thermodynamics and their consequences'},
+      {id:'a5-2',  text:'Thermodynamic potentials and Maxwell relations'},
+      {id:'a5-3',  text:'Chemical potential, phase equilibria'},
+      {id:'a5-4',  text:'Phase space, micro- and macro-states'},
+      {id:'a5-5',  text:'Micro-canonical, canonical and grand-canonical ensembles'},
+      {id:'a5-6',  text:'Partition functions and free energy'},
+      {id:'a5-7',  text:'Classical and quantum statistics'},
+      {id:'a5-8',  text:'Ideal Bose and Fermi gases'},
+      {id:'a5-9',  text:'Principle of detailed balance'},
+      {id:'a5-10', text:"Blackbody radiation and Planck's distribution law"},
+    ]},
+    { id:'a6', icon:'⊞', title:'Electronics & Experimental Methods', tasks:[
+      {id:'a6-1',  text:'Semiconductor devices: diodes, junctions, transistors, FETs'},
+      {id:'a6-2',  text:'Homo- and hetero-junction devices, device characteristics'},
+      {id:'a6-3',  text:'Opto-electronic devices: solar cells, photo-detectors, LEDs'},
+      {id:'a6-4',  text:'Operational amplifiers and their applications'},
+      {id:'a6-5',  text:'Digital techniques: registers, counters, comparators'},
+      {id:'a6-6',  text:'A/D and D/A converters'},
+      {id:'a6-7',  text:'Microprocessor and microcontroller basics'},
+      {id:'a6-8',  text:'Data interpretation, precision and accuracy'},
+      {id:'a6-9',  text:'Error analysis, propagation of errors, least squares fitting'},
+    ]},
+  ]},
+  { id:'partB', label:'Part B — Advanced', sections:[
+    { id:'b1', icon:'∂', title:'Mathematical Methods (Advanced)', tasks:[
+      {id:'b1-1', text:"Green's function"},
+      {id:'b1-2', text:'PDEs: Laplace, wave and heat equations in 2D & 3D'},
+      {id:'b1-3', text:'Computational techniques: root finding, interpolation, extrapolation'},
+      {id:'b1-4', text:"Integration: trapezoid & Simpson's rule; Runge-Kutta method"},
+      {id:'b1-5', text:'Finite difference methods'},
+      {id:'b1-6', text:'Tensors'},
+      {id:'b1-7', text:'Introductory group theory: SU(2), O(3)'},
+    ]},
+    { id:'b2', icon:'H', title:'Classical Mechanics (Advanced)', tasks:[
+      {id:'b2-1', text:'Poisson brackets and canonical transformations'},
+      {id:'b2-2', text:"Symmetry, invariance and Noether's theorem"},
+      {id:'b2-3', text:'Hamilton-Jacobi theory'},
+    ]},
+    { id:'b3', icon:'∼', title:'Electromagnetic Theory (Advanced)', tasks:[
+      {id:'b3-1', text:'Dispersion relations in plasma'},
+      {id:'b3-2', text:"Lorentz invariance of Maxwell's equations"},
+      {id:'b3-3', text:'Transmission lines and waveguides'},
+      {id:'b3-4', text:'Radiation from moving charges and dipoles'},
+      {id:'b3-5', text:'Retarded potentials'},
+    ]},
+    { id:'b4', icon:'Ω', title:'Quantum Mechanics (Advanced)', tasks:[
+      {id:'b4-1', text:'Spin-orbit coupling, fine structure'},
+      {id:'b4-2', text:'WKB approximation'},
+      {id:'b4-3', text:'Scattering theory: phase shifts, partial waves'},
+      {id:'b4-4', text:'Born approximation'},
+      {id:'b4-5', text:'Relativistic QM: Klein-Gordon and Dirac equations'},
+      {id:'b4-6', text:'Semi-classical theory of radiation'},
+    ]},
+    { id:'b5', icon:'φ', title:'Thermodynamics (Advanced)', tasks:[
+      {id:'b5-1', text:'First- and second-order phase transitions'},
+      {id:'b5-2', text:'Diamagnetism, paramagnetism, and ferromagnetism'},
+      {id:'b5-3', text:'Ising model'},
+      {id:'b5-4', text:'Bose-Einstein condensation'},
+      {id:'b5-5', text:'Diffusion equation, random walk and Brownian motion'},
+      {id:'b5-6', text:'Introduction to nonequilibrium processes'},
+    ]},
+    { id:'b6', icon:'⊗', title:'Electronics (Advanced)', tasks:[
+      {id:'b6-1', text:'Linear and nonlinear curve fitting, chi-square test'},
+      {id:'b6-2', text:'Transducers: temperature, pressure, magnetic, optical, particle detectors'},
+      {id:'b6-3', text:'Measurement, control and signal conditioning'},
+      {id:'b6-4', text:'Amplification: Op-amp, instrumentation amp, feedback'},
+      {id:'b6-5', text:'Filtering, noise reduction, shielding and grounding'},
+      {id:'b6-6', text:'Fourier transforms, lock-in detector, box-car integrator'},
+      {id:'b6-7', text:'High frequency devices: generators and detectors'},
+    ]},
+    { id:'b7', icon:'λ', title:'Atomic & Molecular Physics', tasks:[
+      {id:'b7-1',  text:'Quantum states of an electron in an atom, electron spin'},
+      {id:'b7-2',  text:'Spectrum of helium and alkali atoms'},
+      {id:'b7-3',  text:'Relativistic corrections for hydrogen energy levels'},
+      {id:'b7-4',  text:'Hyperfine structure and isotopic shift'},
+      {id:'b7-5',  text:'Width of spectral lines, LS & JJ couplings'},
+      {id:'b7-6',  text:'Zeeman, Paschen-Back & Stark effects'},
+      {id:'b7-7',  text:'Electron spin resonance (ESR)'},
+      {id:'b7-8',  text:'Nuclear magnetic resonance (NMR), chemical shift'},
+      {id:'b7-9',  text:'Frank-Condon principle, Born-Oppenheimer approximation'},
+      {id:'b7-10', text:'Electronic, rotational, vibrational spectra of diatomic molecules'},
+      {id:'b7-11', text:'Raman spectra, selection rules'},
+      {id:'b7-12', text:'Lasers: spontaneous & stimulated emission, Einstein A & B coefficients'},
+      {id:'b7-13', text:'Optical pumping, population inversion, rate equation'},
+      {id:'b7-14', text:'Modes of resonators and coherence length'},
+    ]},
+    { id:'b8', icon:'◈', title:'Condensed Matter Physics', tasks:[
+      {id:'b8-1',  text:'Bravais lattices'},
+      {id:'b8-2',  text:'Reciprocal lattice'},
+      {id:'b8-3',  text:'Diffraction and the structure factor'},
+      {id:'b8-4',  text:'Bonding of solids'},
+      {id:'b8-5',  text:'Elastic properties, phonons, lattice specific heat'},
+      {id:'b8-6',  text:'Free electron theory and electronic specific heat'},
+      {id:'b8-7',  text:'Response and relaxation phenomena'},
+      {id:'b8-8',  text:'Drude model of electrical and thermal conductivity'},
+      {id:'b8-9',  text:'Hall effect and thermoelectric power'},
+      {id:'b8-10', text:'Band theory: metals, insulators, semiconductors'},
+      {id:'b8-11', text:'Superconductivity: type-I and type-II, Josephson junctions'},
+      {id:'b8-12', text:'Superfluidity'},
+      {id:'b8-13', text:'Defects and dislocations'},
+      {id:'b8-14', text:'Ordered phases: liquid crystalline order, quasi crystals'},
+    ]},
+    { id:'b9', icon:'⊙', title:'Nuclear & Particle Physics', tasks:[
+      {id:'b9-1',  text:'Nuclear properties: size, shape, charge distribution, spin and parity'},
+      {id:'b9-2',  text:'Binding energy, semi-empirical mass formula, liquid drop model'},
+      {id:'b9-3',  text:'Nuclear force: nucleon-nucleon potential, charge-independence'},
+      {id:'b9-4',  text:'Deuteron problem'},
+      {id:'b9-5',  text:'Shell structure, single-particle shell model'},
+      {id:'b9-6',  text:'Rotational spectra'},
+      {id:'b9-7',  text:'Alpha, beta and gamma decays and their selection rules'},
+      {id:'b9-8',  text:'Fission and fusion'},
+      {id:'b9-9',  text:'Nuclear reactions, compound nuclei and direct reactions'},
+      {id:'b9-10', text:'Classification of fundamental forces'},
+      {id:'b9-11', text:'Elementary particles and quantum numbers'},
+      {id:'b9-12', text:'Gell-Mann-Nishijima formula'},
+      {id:'b9-13', text:'Quark model, baryons and mesons'},
+      {id:'b9-14', text:'C, P, T invariance; symmetry arguments'},
+      {id:'b9-15', text:'Parity non-conservation in weak interaction'},
+      {id:'b9-16', text:'Relativistic kinematics'},
+    ]},
+  ]},
+];
+
+const SUBJECTS = [
+  { id:'cm',  icon:'ℒ', title:'Classical Mechanics',          count:75 },
+  { id:'em',  icon:'⚡', title:'Electromagnetic Theory',       count:66 },
+  { id:'qm',  icon:'ψ', title:'Quantum Mechanics',            count:48 },
+  { id:'mp',  icon:'∇', title:'Mathematical Physics',         count:92 },
+  { id:'th',  icon:'Σ', title:'Thermodynamics & Stat. Mech.', count:20 },
+  { id:'el',  icon:'⊞', title:'Electronics',                  count:36 },
+  { id:'am',  icon:'λ', title:'Atomic & Molecular Physics',   count:24 },
+  { id:'np',  icon:'⊙', title:'Nuclear Physics',              count:24 },
+  { id:'cmp', icon:'◈', title:'Condensed Matter Physics',     count:30 },
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE & STORAGE
+// ═══════════════════════════════════════════════════════════
+const KEY = 'csirnet_combined_v1';
+let state = loadState();
+
+function loadState() {
+  try {
+    const r = localStorage.getItem(KEY);
+    if (r) return JSON.parse(r);
+  } catch(e) {}
+  return { syl:{ done:{}, custom:{}, deleted:{} }, lec:{ done:{}, custom:{}, deleted:{} } };
+}
+function saveState() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT / IMPORT / RESET
+// ═══════════════════════════════════════════════════════════
+function exportData() {
+  const payload = {
+    version: 1,
+    exported: new Date().toISOString(),
+    state
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `csirnet_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✓ Backup exported successfully');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (parsed.state && parsed.state.syl && parsed.state.lec) {
+        state = parsed.state;
+      } else if (parsed.syl && parsed.lec) {
+        state = parsed;
+      } else {
+        toast('✗ Invalid backup file'); return;
+      }
+      saveState();
+      location.reload();
+    } catch(err) { toast('✗ Could not read file'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function resetAll() {
+  if (!confirm('Reset ALL progress in both tabs? This cannot be undone.')) return;
+  state = { syl:{ done:{}, custom:{}, deleted:{} }, lec:{ done:{}, custom:{}, deleted:{} } };
+  saveState();
+  location.reload();
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&name==='syllabus')||(i===1&&name==='lectures'));
+  });
+  document.getElementById('panel-syllabus').classList.toggle('active', name==='syllabus');
+  document.getElementById('panel-lectures').classList.toggle('active', name==='lectures');
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function pctColor(p) {
+  if (p >= 75) return 'var(--accent)';
+  if (p >= 35) return 'var(--amber)';
+  return 'var(--text)';
+}
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function setDonut(ringId, pct) {
+  const circ = 2 * Math.PI * 58;
+  document.getElementById(ringId).setAttribute(
+    'stroke-dasharray',`${((pct/100)*circ).toFixed(2)} ${circ.toFixed(2)}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ─── SYLLABUS ───
+// ═══════════════════════════════════════════════════════════
+function sylTasks(sec) {
+  const base  = sec.tasks.filter(t => !state.syl.deleted[t.id]);
+  const extra = (state.syl.custom[sec.id]||[]).filter(t => !state.syl.deleted[t.id]);
+  return [...base, ...extra];
+}
+function sylSecStats(sec) {
+  const all = sylTasks(sec);
+  const d   = all.filter(t => state.syl.done[t.id]).length;
+  return { done:d, total:all.length, pct: all.length ? Math.round(d/all.length*100) : 0 };
+}
+function sylPartStats(part) {
+  let d=0, t=0;
+  for (const s of part.sections) { const st=sylSecStats(s); d+=st.done; t+=st.total; }
+  return { done:d, total:t, pct: t?Math.round(d/t*100):0 };
+}
+function sylOverall() {
+  let d=0, t=0;
+  for (const p of SYLLABUS) { const st=sylPartStats(p); d+=st.done; t+=st.total; }
+  return { done:d, total:t, pct: t?Math.round(d/t*100):0 };
+}
+
+function renderSylPills() {
+  let html = '';
+  for (const part of SYLLABUS) {
+    const pst = sylPartStats(part);
+    html += `<div class="part-row">
+      <span class="part-row-label">${part.label}</span>
+      <span class="part-row-pct" id="sdash-part-${part.id}">${pst.pct}%</span>
+    </div><div class="pills-grid">`;
+    for (const sec of part.sections) {
+      const sst = sylSecStats(sec);
+      html += `<div class="section-pill" onclick="sylJump('${sec.id}')" title="${sec.title}">
+        <div class="pill-top">
+          <span class="pill-icon">${sec.icon}</span>
+          <span class="pill-pct" id="spill-pct-${sec.id}" style="color:${pctColor(sst.pct)}">${sst.pct}%</span>
+        </div>
+        <div class="pill-name">${sec.title}</div>
+        <div class="pill-bar"><div class="pill-fill" id="spill-fill-${sec.id}" style="width:${sst.pct}%"></div></div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  document.getElementById('syl-pills-card').innerHTML = html;
+}
+
+function refreshSylStats() {
+  const ov = sylOverall();
+  setDonut('syl-ring', ov.pct);
+  document.getElementById('syl-pct-text').textContent  = ov.pct+'%';
+  document.getElementById('syl-tasks-label').textContent = `${ov.done} / ${ov.total} tasks done`;
+  document.getElementById('syl-done').textContent   = ov.done;
+  document.getElementById('syl-remain').textContent = ov.total - ov.done;
+  const pA = sylPartStats(SYLLABUS[0]);
+  const pB = sylPartStats(SYLLABUS[1]);
+  document.getElementById('syl-pct-a').textContent = pA.pct+'%';
+  document.getElementById('syl-pct-b').textContent = pB.pct+'%';
+
+  for (const part of SYLLABUS) {
+    const pst = sylPartStats(part);
+    const el = document.getElementById(`sdash-part-${part.id}`);
+    if (el) el.textContent = pst.pct+'%';
+    for (const sec of part.sections) {
+      const sst = sylSecStats(sec);
+      const pf  = document.getElementById(`spill-fill-${sec.id}`);
+      const pp  = document.getElementById(`spill-pct-${sec.id}`);
+      const bar = document.getElementById(`sbar-${sec.id}`);
+      const lbl = document.getElementById(`slbl-${sec.id}`);
+      const bdg = document.getElementById(`sbdg-${sec.id}`);
+      if (pf) pf.style.width = sst.pct+'%';
+      if (pp) { pp.textContent = sst.pct+'%'; pp.style.color = pctColor(sst.pct); }
+      if (bar) bar.style.width = sst.pct+'%';
+      if (lbl) { lbl.textContent = sst.pct+'%'; lbl.style.color = pctColor(sst.pct); }
+      if (bdg) bdg.textContent = `${sst.done}/${sst.total}`;
+    }
+    const pbdg = document.getElementById(`spart-badge-${part.id}`);
+    if (pbdg) pbdg.textContent = `${pst.done}/${pst.total}`;
+  }
+}
+
+function sylRowHtml(task) {
+  const done = !!state.syl.done[task.id];
+  return `<div class="subtopic-item${done?' done':''}" id="srow-${task.id}">
+    <input type="checkbox"${done?' checked':''} onchange="sylToggle('${task.id}',this.checked)">
+    <span class="subtopic-text">${esc(task.text)}</span>
+    <button class="del-btn" onclick="sylDel('${task.id}')" title="Delete">✕</button>
+  </div>`;
+}
+
+function renderSyllabus() {
+  let html = '';
+  for (const part of SYLLABUS) {
+    const pst = sylPartStats(part);
+    html += `<div class="part-block">
+      <div class="part-title" onclick="togglePart('${part.id}')" id="sptitle-${part.id}">
+        <span class="part-slash">// </span>
+        <span class="part-title-text">${part.label}</span>
+        <span class="part-title-badge" id="spart-badge-${part.id}">${pst.done}/${pst.total}</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="part-body" id="spbody-${part.id}">`;
+    for (const sec of part.sections) {
+      const sst = sylSecStats(sec);
+      const tasks = sylTasks(sec);
+      html += `<div class="topic-block" id="ssec-${sec.id}">
+        <div class="topic-header" onclick="toggleSylSec('${sec.id}')" id="sthdr-${sec.id}">
+          <span class="topic-icon">${sec.icon}</span>
+          <span class="topic-name">${sec.title}</span>
+          <div class="topic-bar-wrap"><div class="topic-bar-fill" id="sbar-${sec.id}" style="width:${sst.pct}%"></div></div>
+          <span class="topic-pct-label" id="slbl-${sec.id}" style="color:${pctColor(sst.pct)}">${sst.pct}%</span>
+          <span class="topic-count-label" id="sbdg-${sec.id}">${sst.done}/${sst.total}</span>
+          <span class="topic-chevron">▶</span>
+        </div>
+        <div class="subtopic-list" id="sslist-${sec.id}">
+          <div class="subtopic-row">`;
+      for (const t of tasks) html += sylRowHtml(t);
+      html += `</div>
+          <div class="add-task-row">
+            <input class="add-input" id="sainp-${sec.id}" placeholder="+ add custom subtopic..."
+              onkeydown="if(event.key==='Enter')sylAdd('${sec.id}')">
+            <button class="add-btn" onclick="sylAdd('${sec.id}')">ADD</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+  document.getElementById('syl-root').innerHTML = html;
+}
+
+function sylToggle(id, checked) {
+  state.syl.done[id] = checked; saveState();
+  const row = document.getElementById(`srow-${id}`);
+  if (row) row.classList.toggle('done', checked);
+  refreshSylStats();
+}
+function sylDel(id) {
+  state.syl.deleted[id] = true; delete state.syl.done[id];
+  for (const k in state.syl.custom)
+    state.syl.custom[k] = state.syl.custom[k].filter(t=>t.id!==id);
+  saveState();
+  const row = document.getElementById(`srow-${id}`);
+  if (row) { row.classList.add('fading'); setTimeout(()=>{row.remove();refreshSylStats();},210); }
+  else refreshSylStats();
+}
+function sylAdd(secId) {
+  const inp = document.getElementById(`sainp-${secId}`);
+  const txt = inp.value.trim(); if (!txt) { inp.focus(); return; }
+  if (!state.syl.custom[secId]) state.syl.custom[secId] = [];
+  const newT = { id:`sc-${secId}-${Date.now()}`, text:txt };
+  state.syl.custom[secId].push(newT); saveState();
+  const col = document.querySelector(`#sslist-${secId} .subtopic-row`);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = sylRowHtml(newT);
+  col.appendChild(tmp.firstElementChild);
+  inp.value = ''; refreshSylStats();
+}
+function togglePart(id) {
+  document.getElementById(`sptitle-${id}`).classList.toggle('open');
+  document.getElementById(`spbody-${id}`).classList.toggle('open');
+}
+function toggleSylSec(id) {
+  document.getElementById(`sthdr-${id}`).classList.toggle('open');
+  document.getElementById(`sslist-${id}`).classList.toggle('open');
+}
+function sylJump(secId) {
+  for (const part of SYLLABUS)
+    for (const sec of part.sections)
+      if (sec.id===secId) {
+        const pb = document.getElementById(`spbody-${part.id}`);
+        if (!pb.classList.contains('open')) {
+          document.getElementById(`sptitle-${part.id}`).classList.add('open');
+          pb.classList.add('open');
+        }
+      }
+  const hdr = document.getElementById(`sthdr-${secId}`);
+  const lst = document.getElementById(`sslist-${secId}`);
+  if (hdr && !hdr.classList.contains('open')) { hdr.classList.add('open'); lst.classList.add('open'); }
+  setTimeout(()=>document.getElementById(`ssec-${secId}`)?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ─── LECTURES ───
+// ═══════════════════════════════════════════════════════════
+function buildLectures(sub) {
+  const arr = [];
+  for (let i=1; i<=sub.count; i++)
+    arr.push({ id:`${sub.id}-L${i}`, text:`Lecture ${i}` });
+  return arr;
+}
+function lecTasks(sub) {
+  const base  = buildLectures(sub).filter(t=>!state.lec.deleted[t.id]);
+  const extra = (state.lec.custom[sub.id]||[]).filter(t=>!state.lec.deleted[t.id]);
+  return [...base, ...extra];
+}
+function lecSubStats(sub) {
+  const all = lecTasks(sub);
+  const d   = all.filter(t=>state.lec.done[t.id]).length;
+  return { done:d, total:all.length, pct: all.length ? Math.round(d/all.length*100) : 0 };
+}
+function lecOverall() {
+  let d=0, t=0;
+  for (const s of SUBJECTS) { const st=lecSubStats(s); d+=st.done; t+=st.total; }
+  return { done:d, total:t, pct: t?Math.round(d/t*100):0 };
+}
+function lecStarted() { return SUBJECTS.filter(s=>lecSubStats(s).done>0).length; }
+
+function renderLecPills() {
+  let html = '<div class="card-label" style="margin-bottom:6px;">All Subjects</div><div class="pills-grid">';
+  for (const sub of SUBJECTS) {
+    const st = lecSubStats(sub);
+    html += `<div class="section-pill" onclick="lecJump('${sub.id}')" title="${sub.title}">
+      <div class="pill-top">
+        <span class="pill-icon">${sub.icon}</span>
+        <span class="pill-pct" id="lpill-pct-${sub.id}" style="color:${pctColor(st.pct)}">${st.pct}%</span>
+      </div>
+      <div class="pill-name">${sub.title}</div>
+      <div class="pill-bar"><div class="pill-fill" id="lpill-fill-${sub.id}" style="width:${st.pct}%"></div></div>
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('lec-pills-card').innerHTML = html;
+}
+
+function refreshLecStats() {
+  const ov = lecOverall();
+  setDonut('lec-ring', ov.pct);
+  document.getElementById('lec-pct-text').textContent   = ov.pct+'%';
+  document.getElementById('lec-tasks-label').textContent = `${ov.done} / ${ov.total} lectures done`;
+  document.getElementById('lec-done').textContent    = ov.done;
+  document.getElementById('lec-remain').textContent  = ov.total - ov.done;
+  document.getElementById('lec-total').textContent   = ov.total;
+  document.getElementById('lec-started').textContent = lecStarted()+'/9';
+
+  for (const sub of SUBJECTS) {
+    const st = lecSubStats(sub);
+    const pf  = document.getElementById(`lpill-fill-${sub.id}`);
+    const pp  = document.getElementById(`lpill-pct-${sub.id}`);
+    const bar = document.getElementById(`lbar-${sub.id}`);
+    const lbl = document.getElementById(`llbl-${sub.id}`);
+    const bdg = document.getElementById(`lbdg-${sub.id}`);
+    if (pf)  pf.style.width = st.pct+'%';
+    if (pp)  { pp.textContent = st.pct+'%'; pp.style.color = pctColor(st.pct); }
+    if (bar) bar.style.width = st.pct+'%';
+    if (lbl) { lbl.textContent = st.pct+'%'; lbl.style.color = pctColor(st.pct); }
+    if (bdg) bdg.textContent = `${st.done}/${st.total}`;
+  }
+}
+
+function lecRowHtml(task) {
+  const done = !!state.lec.done[task.id];
+  return `<div class="subtopic-item${done?' done':''}" id="lrow-${task.id}">
+    <input type="checkbox"${done?' checked':''} onchange="lecToggle('${task.id}',this.checked)">
+    <span class="subtopic-text">${esc(task.text)}</span>
+    <button class="del-btn" onclick="lecDel('${task.id}')" title="Delete">✕</button>
+  </div>`;
+}
+
+function renderLectures() {
+  let html = '';
+  for (const sub of SUBJECTS) {
+    const st    = lecSubStats(sub);
+    const tasks = lecTasks(sub);
+    html += `<div class="topic-block" id="lsec-${sub.id}">
+      <div class="topic-header" onclick="toggleLecSec('${sub.id}')" id="lthdr-${sub.id}">
+        <span class="topic-icon">${sub.icon}</span>
+        <span class="topic-name">${sub.title}</span>
+        <div class="topic-bar-wrap"><div class="topic-bar-fill" id="lbar-${sub.id}" style="width:${st.pct}%"></div></div>
+        <span class="topic-pct-label" id="llbl-${sub.id}" style="color:${pctColor(st.pct)}">${st.pct}%</span>
+        <span class="topic-count-label" id="lbdg-${sub.id}">${st.done}/${st.total}</span>
+        <span class="topic-chevron">▶</span>
+      </div>
+      <div class="subtopic-list" id="lslist-${sub.id}">
+        <div class="lecture-grid" id="lgrid-${sub.id}">`;
+    for (const t of tasks) html += lecRowHtml(t);
+    html += `</div>
+        <div class="add-task-row">
+          <input class="add-input" id="lainp-${sub.id}" placeholder="+ add custom lecture..."
+            onkeydown="if(event.key==='Enter')lecAdd('${sub.id}')">
+          <button class="add-btn" onclick="lecAdd('${sub.id}')">ADD</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('lec-root').innerHTML = html;
+}
+
+function lecToggle(id, checked) {
+  state.lec.done[id] = checked; saveState();
+  const row = document.getElementById(`lrow-${id}`);
+  if (row) row.classList.toggle('done', checked);
+  refreshLecStats();
+}
+function lecDel(id) {
+  state.lec.deleted[id] = true; delete state.lec.done[id];
+  for (const k in state.lec.custom)
+    state.lec.custom[k] = state.lec.custom[k].filter(t=>t.id!==id);
+  saveState();
+  const row = document.getElementById(`lrow-${id}`);
+  if (row) { row.classList.add('fading'); setTimeout(()=>{row.remove();refreshLecStats();},210); }
+  else refreshLecStats();
+}
+function lecAdd(subId) {
+  const inp = document.getElementById(`lainp-${subId}`);
+  const txt = inp.value.trim(); if (!txt) { inp.focus(); return; }
+  if (!state.lec.custom[subId]) state.lec.custom[subId] = [];
+  const newT = { id:`lc-${subId}-${Date.now()}`, text:txt };
+  state.lec.custom[subId].push(newT); saveState();
+  const grid = document.getElementById(`lgrid-${subId}`);
+  const tmp  = document.createElement('div');
+  tmp.innerHTML = lecRowHtml(newT);
+  grid.appendChild(tmp.firstElementChild);
+  inp.value = ''; refreshLecStats();
+}
+function toggleLecSec(id) {
+  document.getElementById(`lthdr-${id}`).classList.toggle('open');
+  document.getElementById(`lslist-${id}`).classList.toggle('open');
+}
+function lecJump(subId) {
+  const hdr = document.getElementById(`lthdr-${subId}`);
+  const lst = document.getElementById(`lslist-${subId}`);
+  if (hdr && !hdr.classList.contains('open')) { hdr.classList.add('open'); lst.classList.add('open'); }
+  switchTab('lectures');
+  setTimeout(()=>document.getElementById(`lsec-${subId}`)?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(function init() {
+  const d = new Date();
+  document.getElementById('header-date').textContent =
+    d.toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).toUpperCase();
+
+  renderSylPills();
+  renderSyllabus();
+  refreshSylStats();
+
+  renderLecPills();
+  renderLectures();
+  refreshLecStats();
+})();
+</script>
+</body>
+</html>
